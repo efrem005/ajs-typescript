@@ -1,26 +1,72 @@
 import Buyable from '../domain/Buyable'
 
+type CartEntry = {
+  item: Buyable
+  count: number
+  countable: boolean
+}
+
+function isCountable(item: Buyable): boolean {
+  return (item as { countable?: boolean }).countable === true
+}
+
 export default class Cart {
-    private _items: Buyable[] = [];
+  private _entries: Map<number, CartEntry> = new Map()
 
-    add(item: Buyable): void {
-        this._items.push(item)
+  add(item: Buyable): void {
+    const countable = isCountable(item)
+    const existing = this._entries.get(item.id)
+
+    if (!existing) {
+      this._entries.set(item.id, { item, count: 1, countable })
+      return
     }
 
-    get items(): Buyable[] {
-        return [...this._items]
+    if (!countable) {
+      return
     }
 
-    totalPrice(): number {
-        return this._items.reduce((sum, { price }) => sum + price, 0)
+    existing.count += 1
+  }
+
+  get items(): Buyable[] {
+    const result: Buyable[] = []
+    this._entries.forEach(({ item, count }) => {
+      for (let i = 0; i < count; i += 1) {
+        result.push(item)
+      }
+    })
+    return result
+  }
+
+  totalPrice(): number {
+    let total = 0
+    this._entries.forEach(({ item, count }) => {
+      total += item.price * count
+    })
+    return total
+  }
+
+  totalPriceWithDiscount(discount: number): number {
+    const total = this.totalPrice()
+    return total * (1 - discount / 100)
+  }
+
+  removeById(id: number): void {
+    this._entries.delete(id)
+  }
+
+  decreaseCount(id: number): void {
+    const entry = this._entries.get(id)
+    if (!entry) {
+      return
     }
 
-    totalPriceWithDiscount(discount: number): number {
-        const total = this.totalPrice()
-        return total * (1 - discount / 100)
+    if (!entry.countable || entry.count <= 1) {
+      this._entries.delete(id)
+      return
     }
 
-    removeById(id: number): void {
-        this._items = this._items.filter((item) => item.id !== id)
-    }
+    entry.count -= 1
+  }
 }
