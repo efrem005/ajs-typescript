@@ -30,21 +30,20 @@ export default class Cart {
   }
 
   get items(): Buyable[] {
-    const result: Buyable[] = []
-    this._entries.forEach(({ item, count }) => {
-      for (let i = 0; i < count; i += 1) {
-        result.push(item)
-      }
-    })
-    return result
+    return Array.from(this._entries.values()).reduce<Buyable[]>(
+      (acc, { item, count }) => [
+        ...acc,
+        ...Array.from({ length: count }, () => item),
+      ],
+      [],
+    )
   }
 
   totalPrice(): number {
-    let total = 0
-    this._entries.forEach(({ item, count }) => {
-      total += item.price * count
-    })
-    return total
+    return Array.from(this._entries.values()).reduce(
+      (sum, { item, count }) => sum + item.price * count,
+      0,
+    )
   }
 
   totalPriceWithDiscount(discount: number): number {
